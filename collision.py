@@ -4,7 +4,7 @@
 
 import sys
 import math
-from numpy import *
+import numpy as np
 
 indata = []
 data = []
@@ -64,19 +64,11 @@ def simpleMove(checkNum) :
 
     global currentTime
 
-    # print('now print ', checkNum)
-
     for i in range(len(data)) :
         data[i].mov(outTime[checkNum] - currentTime)
     currentTime = outTime[checkNum]
 
 # currentTime update, currentLocation update
-
-def outLocation(checkNum) :
-    print(outTime[checkNum])
-    for i in range(len(data)) :
-        print(data[i].id, ' ',data[i].xl, ' ',data[i].yl, ' ',data[i].xs, ' ',data[i].ys)
-
 
 
 def proceedCol():
@@ -104,7 +96,18 @@ def changeColSpeed(a,b) :
     if a.yl == b.yl :
         a.xs, b.xs = b.xs, a.xs
         return()
+    v1 = np.array([a.xs, a.ys])
+    v2 = np.array([b.xs, b.ys])
+    x1 = np.array([a.xl, a.yl])
+    x2 = np.array([b.xl, b.yl])
+    v1_new = v1-((np.dot(v1-v2,x1-x2)))*(x1-x2)/100
+    v2_new = v2-((np.dot(v2-v1,x2-x1)))*(x2-x1)/100
+    a.xs = v1_new[0]
+    b.xs = v2_new[0]
+    a.ys = v1_new[1]
+    b.ys = v2_new[1]
 
+'''
     angle = arccos(abs(a.yl - b.yl) / 10)
     anewXs = a.xs * cos(90 - angle) - a.ys * cos(angle)
     anewYs = a.xs * cos(angle) + a.ys * cos(90 - angle)
@@ -117,36 +120,31 @@ def changeColSpeed(a,b) :
     a.ys = anewYs * cos(90 - angle) - anewXs * cos(angle)
     b.xs = bnewYs * cos(angle) + bnewXs * cos(90 - angle)
     b.ys = bnewYs * cos(90 - angle) - bnewXs * cos(angle)
+'''
+
+# curreSpeed (after collision) update
     
-
-
-def checkCol(checkNum) :
-
+def checkCol() :
     global colList
     global currentTime
     global nextColTime
-
-    set = 0
     for i in range(len(data)-1) :
         for j in range(i+1, len(data)) :
             colstatus = data[i].col(data[j])
             if colstatus == 1 :
                 colList.clear()
                 colList.append([i,j])
-                set = 1
             elif colstatus == 2 :
                 colList.append([i,j])
-                set = 1
             else :
                 pass
-    '''
-    if set == 0 :
-        for i in range(checkNum, len(data)) :
-            simpleMove(i)
-        sys.exit()
-    else :
-        pass
-    '''
+
+# collision list update, in function nextc colision time update
+
+def outLocation(checkNum) :
+    print(outTime[checkNum])
+    for i in range(len(data)) :
+        print(data[i].id, ' ',data[i].xl, ' ',data[i].yl, ' ',data[i].xs, ' ',data[i].ys)
 
 def is_number(s):
     try:
@@ -219,12 +217,12 @@ currentTime = 0
 colList = []
 nextColTime = outTime[len(outTime)-1] + 1
 
-checkCol(0)
+checkCol()
 
 for i in range(len(outTime)) :
     while outTime[i] > nextColTime :
         proceedCol()
-        checkCol(i)
+        checkCol()
     simpleMove(i)
     outLocation(i)
 
