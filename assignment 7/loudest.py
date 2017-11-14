@@ -1,55 +1,39 @@
 # Copyright 2017 Wu Sun sunw5@bu.edu
+# Copyright 2017 Tianyi Zhang tianyiz@bu.edu
 
-import numpy
-from numpy import fft,array,real,zeros_like,linspace
-from random import randint
+import numpy as np
 from math import ceil
 
 def loudest_band(music,frame_rate,bandwidth):
-
-    "define low and high f"
-    global f_low
-    global f_high
-    "store the lowest f for loudest part"
-
-    index = [0]
-
-    "length of signal"
-    x_fre = fft.fft(music)
-    n = len(x_fre)
-
-    "intervel between each two signal"
-    intervel = frame_rate/(n)
-    frequency = linspace(0,frame_rate,n+1)
-
-    "length of BW"
-    n_bw = ceil(bandwidth/intervel)
-
-    "Initial value of loudest part"
-    sum_bw = (abs(x_fre[0:n_bw])**2).sum()
-    index[0] = 0
-
-    "Interation of loudest part"
-    Max = sum_bw
-    for i in range(ceil((n/2)-n_bw)):
-        Sum = sum_bw-(abs(x_fre[i])**2)+(abs(x_fre[i+n_bw])**2)      
-        if Sum > Max:
-            sum_bw = Sum
-            Max = Sum
-            index[0] = i+1
-        else:
-            sum_bw = Sum
-
-    "locate the lowest boundary"
-    a = index[0]
-
-    "reconstruct the signal"
-    x_filter = [0]*n
-    x_filter[a:a+n_bw+1]=x_fre[a:a+n_bw+1]
-    x_filter[-a-n_bw+n:-a+n+1]=x_fre[-a-n_bw+n:-a+n+1]
-    C_loud = fft.ifft(x_filter)
-    "determine the lowest and highest frequency"
     
-    f_low = frequency[a]
-    f_high = frequency[a+n_bw]
-    return f_low,f_high,C_loud
+    loudestBand = 0
+    musicFre = np.fft.fft(music)
+    musicLength = len(musicFre)
+    simpleGap = frame_rate / musicLength
+    bandLength = ceil(bandwidth / simpleGap)
+    musicBandLength = ceil((musicLength / 2) - bandLength)
+    bandPowerSum = sum((abs(musicFre[0 : bandLength]) ** 2)) #powersum of the band from the 0Hz to the bandlength
+
+#-------------------- check the loudest band --------------------#
+    maxPower = bandPowerSum
+    for i in range(musicBandLength):
+    	a = bandPowerSum - (abs(musicFre[i]) ** 2) + (abs(musicFre[i + bandLength]) ** 2)
+    	if a > maxPower :
+    		loudestBand = i + 1
+    		bandPowerSum = a
+    		maxPower = a
+    	else:
+            bandPowerSum = a
+#------------------ end of check the loudest band ---------------#
+
+#------- generate the music from the selected loudest band ------#
+    loudestBandFre = [0] * musicLength
+    loudestBandFre[loudestBand : loudestBand + bandLength + 1] = musicFre[loudestBand : loudestBand + bandLength + 1]
+    loudestBandFre[-(loudestBand + bandLength - musicLength) : -(loudestBand - musicLength) + 1] = musicFre[-(loudestBand + bandLength - musicLength) : -(loudestBand - musicLength) + 1]
+    loudestMusic = np.fft.ifft(loudestBandFre)
+#--- end of generate the music from the selected loudest band ---#
+
+    simpleAmount = np.linspace(0, frame_rate, musicLength + 1)
+    low = simpleAmount[loudestBand]
+    high = simpleAmount[loudestBand + bandLength]
+    return low, high, loudestMusic
